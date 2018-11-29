@@ -7,7 +7,8 @@ export class Searchable extends Component {
       const books = this.props.booksList;
       const bookItems = books.map((book) =>
         <li key={book.item.id}>
-        {book.item.title + ". Rating: " + book.item.rating + book.authorName}
+        {"'" + book.item.title + "'" + " Rating: " + book.item.rating + " Author: "
+         + book.authorName}
         </li>
       );
       return (
