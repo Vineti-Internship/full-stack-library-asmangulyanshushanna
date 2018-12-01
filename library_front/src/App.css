@@ -1,20 +1,34 @@
 
 .App-logo {
   animation: App-logo-spin infinite 20s linear;
-  height: 40vmin;
+  height: 60vmin;
+  margin-left: 200px;
 }
 
 .data {
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
-  margin-left: 500px;
-  margin-bottom: 20px
+  margin-top: 5px;
+  width: 250px;
+}
+
+.general {
+  position: fixed;
+  left: 520px;
+  
+}
+.remove {
+  margin-left: 5px;
+  padding: 1px 1px;
+
 }
 
 .add {
-  margin-left: 570px;
+  display: flex;
+  flex-direction: column;
+  margin-left: 85px;
+  margin-top: 5px;
 }
 
 @keyframes App-logo-spin {

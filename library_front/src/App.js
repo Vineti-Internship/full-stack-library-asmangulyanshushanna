@@ -2,13 +2,15 @@ import React, { Component } from 'react';
 import logo from './logo.svg';
 import './App.css';
 import  Searchable  from './Searchable';
+import {ThemeContext, themes} from './theme';
+
 
 class App extends Component {
   constructor (props){
     super(props);
     this.state = {books: [], filteredBooksWithAuthors: [], authors: [], loading: true, 
       newBookTitle: "" , newBookRating: "",  newAuthorName: "", newAuthorEmail: "", 
-      newLink: ""}
+      newLink: "", theme: themes.dark}
   }
   componentDidMount(){
     Promise.all([
@@ -20,13 +22,16 @@ class App extends Component {
     books: data1, 
     authors: data2,
     loading: false
-  }));
+  })).catch(err => {
+    console.log(err.message);
+  });
   }
 
   filterBooks = (e) => {
     const text = e.target.value;
     this.changeFilteredBooks(text);
   }
+
   setBookTitle = (e) => {
     const text = e.target.value;
     this.setState({
@@ -61,26 +66,36 @@ class App extends Component {
     })
   }
 
-  addRecord = () => {
+  addRecord = async () => {
     this.validateFields();
     let data = {
       "name": this.state.newAuthorName,
       "email": this.state.newAuthorEmail
    }
-   
-   fetch("http://localhost:3000/authors", {
+   try {
+   const responce = await fetch("http://localhost:3000/authors", {
       method: "POST",
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       },
       body:  JSON.stringify(data)
-   })
-   .then(function(response){ 
-    return response.json();   
-   })
-   .then(data => { 
-   return fetch("http://localhost:3000/books", {
+   });
+   if(responce.ok) {
+     const jsonAuthor = await responce.json();
+     this.addBookRecord(jsonAuthor);
+     return jsonAuthor;
+   } else {
+     throw new Error("Failed to add author")
+   }
+  } catch(error) {
+    console.log(error);
+  }
+  }
+
+  addBookRecord =  async (author) => {
+  try{
+  const responce = await fetch("http://localhost:3000/books", {
     method: "POST",
     headers: {
       'Accept': 'application/json',
@@ -90,14 +105,32 @@ class App extends Component {
       "title": this.state.newBookTitle,
       "rating": this.state.newBookRating,
       "url": this.state.newLink,
-      "author_id": data.id
+      "author_id": author.id
    })
  });
-   }).then(function(response){ 
-    console.log(response.json());   
-   });
+  if(responce.ok) {
+    const jsonBook = await responce.json();
+    alert("Your Book is successfully added!")
+    this.clearInputFields();
+    return jsonBook;
+  } else {
+   throw new Error("Failed to add book")
   }
+    } catch(error) {
+      console.log(error);
+  }
+}
   
+  clearInputFields = () => {
+    this.setState({
+      newLink: "", 
+      newBookTitle: "", 
+      newBookRating: "",  
+      newAuthorName: "", 
+      newAuthorEmail: "",
+    })
+
+  }
 
   validateFields = () => {
     let reg = /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/ ;
@@ -126,6 +159,34 @@ class App extends Component {
 
   }
 }
+
+deleteObjects = async (e) => {
+  const bookID = e.target.id;
+  try {
+    const response  = await fetch("http://localhost:3000/books/" + bookID , {
+      method: "DELETE",
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      },
+   });
+
+    if(response.ok) {
+      const updatedList = this.state.books.filter(book => book.id != bookID);
+      const updatedListWithAuthors = this.state.filteredBooksWithAuthors.filter(
+      book => book.item.id != bookID);
+      this.setState({
+      books: updatedList,
+      filteredBooksWithAuthors: updatedListWithAuthors,
+      });
+  } else {
+    throw new Error("Failed to delete book")
+  }
+} catch(error) {
+  console.log(error);
+}
+}
+
   render() {
     if(this.state.loading===true){
       return ( 
@@ -139,23 +200,33 @@ class App extends Component {
     } else {
       return ( 
         <div>
+          
           <input className="search" onChange={this.filterBooks} placeholder="Search">
           </input>
-          <input className="data" type = "text" onChange={this.setBookTitle} placeholder="Book title">
+          <div className="general">
+          <input className="data" type = "text" onChange={this.setBookTitle}
+          placeholder="Book title" value = {this.state.newBookTitle}>
           </input>
-          <input className="data" type = "number" min="0" max="10"
+          <input className="data rating" type = "number" min="0" max="10"
           onChange={this.setBookRating} 
-          placeholder="Book rating">
+          placeholder="Book rating" value = {this.state.newBookRating}>
           </input>
-          <input className="data" type = "text" onChange={this.setAuthorName} placeholder="Author name">
+          <input className="data" type = "text" onChange={this.setAuthorName} 
+          placeholder="Author name" value = {this.state.newAuthorName}>
           </input>
-          <input className="data" type = "text" onChange={this.setAuthorEmail} placeholder="Author email">
+          <input className="data" type = "text" onChange={this.setAuthorEmail} 
+          placeholder="Author email" value = {this.state.newAuthorEmail}>
           </input>
-          <input className="data" type = "text" onChange={this.setLink} placeholder="Link">
+          <input className="data" type = "text" onChange={this.setLink} 
+          placeholder="Link" value = {this.state.newLink}>
           </input>
+          
           <button className="add" onClick = {this.addRecord}>Add book</button>
-          <Searchable booksList = {this.state.filteredBooksWithAuthors}/>
-
+          </div>
+          <ThemeContext.Provider value={this.state.theme}>
+          <Searchable booksList = {this.state.filteredBooksWithAuthors}
+           deleteObjects = {this.deleteObjects} />
+          </ThemeContext.Provider>
         </div>
   
       );
